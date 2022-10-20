@@ -12,7 +12,7 @@ spec:
       name: http
       protocol: HTTP
     hosts:
-    - ""
+    - "alpinresorts.online"
   - port:
       number: 443
       name: https
@@ -21,4 +21,4 @@ spec:
       mode: SIMPLE
       credentialName: kenn-domain-cert
     hosts:
-    - ""
+    - "alpinresorts.online"

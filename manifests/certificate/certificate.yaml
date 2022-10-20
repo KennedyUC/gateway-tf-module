@@ -16,7 +16,7 @@ spec:
     - server auth
     - client auth
   dnsNames:
-    - ""
+    - "alpinresorts.online"
   issuerRef:
     name: letsencrypt-cluster
     kind: ClusterIssuer
