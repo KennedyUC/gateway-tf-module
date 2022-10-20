@@ -16,17 +16,15 @@ data "kubectl_path_documents" "testpage_manifest" {
 }
 
 
-resource "helm_release" "istio_gateway" {
-  name             = "istio-ingressgateway"
-  repository       = var.istio_chart_repo
-  chart            = "gateway"
-  namespace        = var.istio_namespace
-  create_namespace = false
-  values           = [
-    file("./helm_values/istio-gateway-values.yaml")]
-  atomic           = true
-}
-
+// resource "helm_release" "istio_gateway" {
+//   name             = "istio-ingressgateway"
+//   repository       = var.istio_chart_repo
+//   chart            = "gateway"
+//   namespace        = var.istio_namespace
+//   create_namespace = false
+//   values           = [
+//     file("./helm_values/istio-gateway-values.yaml")]
+// }
 
 // create the certificate issuer resource
 resource "kubectl_manifest" "issuer_manifest" {
