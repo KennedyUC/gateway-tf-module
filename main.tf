@@ -4,11 +4,11 @@ resource "kubectl_manifest" "issuer_manifest" {
     apiVersion: cert-manager.io/v1
     kind: ClusterIssuer
     metadata:
-      name: letsencrypt-cluster
+      name: letsencrypt-prod-cluster
       namespace: istio-system
     spec:
       acme:
-        email: kennedy@mavencode.com
+        email: ${var.acme_email}
         server: https://acme-v02.api.letsencrypt.org/directory
         privateKeySecretRef:
           name: letsencrypt-prod-cluster
@@ -26,10 +26,10 @@ resource "kubectl_manifest" "cert_manifest" {
     apiVersion: cert-manager.io/v1
     kind: Certificate
     metadata:
-      name: kenn-domain-cert
+      name: prod-domain-cert
       namespace: istio-system
     spec:
-      secretName: kenn-domain-cert
+      secretName: prod-domain-cert
       duration: 2160h
       renewBefore: 360h
       isCA: false
@@ -43,7 +43,7 @@ resource "kubectl_manifest" "cert_manifest" {
       dnsNames:
         - "alpinresorts.online"
       issuerRef:
-        name: letsencrypt-cluster
+        name: letsencrypt-prod-cluster
         kind: ClusterIssuer
         group: cert-manager.io
     YAML
@@ -56,7 +56,7 @@ resource "kubectl_manifest" "gateway_manifest" {
     apiVersion: networking.istio.io/v1alpha3
     kind: Gateway
     metadata:
-      name: gateway
+      name: prod-gateway
       namespace: istio-system
     spec:
       selector:
@@ -74,7 +74,7 @@ resource "kubectl_manifest" "gateway_manifest" {
           protocol: HTTPS
         tls:
           mode: SIMPLE
-          credentialName: kenn-domain-cert
+          credentialName: prod-domain-cert
         hosts:
         - "alpinresorts.online"
     YAML
@@ -88,7 +88,7 @@ resource "kubectl_manifest" "virtualservice_manifest" {
     kind: VirtualService
     metadata:
       name: virtual-service-test
-      namespace: default
+      namespace: app-test
     spec:
       hosts:
       - "alpinresorts.online"
@@ -103,5 +103,66 @@ resource "kubectl_manifest" "virtualservice_manifest" {
             host: test-app-service
             port:
               number: 8080
+    YAML
+}
+
+// create the test app deployment resource
+resource "kubectl_manifest" "app_namespace" {
+    yaml_body = <<YAML
+    kind: Namespace
+    apiVersion: v1
+    metadata:
+      name: ${var.app_namespace}
+      labels:
+        name: ${var.app_namespace}
+    YAML
+}
+
+// create the test app deployment resource
+resource "kubectl_manifest" "test_app_deployment" {
+    depends_on  = [kubectl_manifest.app_namespace]
+    yaml_body = <<YAML
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ${var.app_name}
+      namespace: ${var.app_namespace}
+    spec:
+      selector:
+        matchLabels:
+          app: ${var.app_name}
+      template:
+        metadata:
+          labels:
+            app: ${var.app_name}
+        spec:
+          containers:
+          - name: ${var.app_name}
+            image: nginxdemos/hello
+            resources:
+              limits:
+                memory: "128Mi"
+                cpu: "500m"
+            ports:
+            - containerPort: 8080
+    YAML
+}
+
+// create the test app service
+resource "kubectl_manifest" "test_app_service" {
+    depends_on  = [kubectl_manifest.test_app_deployment, kubectl_manifest.virtualservice_manifest]
+    yaml_body = <<YAML
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: test-app-service
+      namespace: ${var.app_namespace}
+    spec:
+      selector:
+        app: ${var.app_name}
+      ports:
+        - protocol: TCP
+          port: 8080
+          targetPort: 80
     YAML
 }
