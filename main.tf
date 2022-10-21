@@ -80,15 +80,28 @@ resource "kubectl_manifest" "gateway_manifest" {
     YAML
 }
 
+// create the test app deployment resource
+resource "kubectl_manifest" "app_namespace" {
+    depends_on  = [kubectl_manifest.gateway_manifest]
+    yaml_body = <<YAML
+    kind: Namespace
+    apiVersion: v1
+    metadata:
+      name: ${var.app_namespace}
+      labels:
+        name: ${var.app_namespace}
+    YAML
+}
+
 // create the virtualservice resource
 resource "kubectl_manifest" "virtualservice_manifest" {
-    depends_on  = [kubectl_manifest.gateway_manifest]
+    depends_on  = [kubectl_manifest.app_namespace]
     yaml_body = <<YAML
     apiVersion: networking.istio.io/v1alpha3
     kind: VirtualService
     metadata:
       name: virtual-service-test
-      namespace: app-test
+      namespace: ${var.app_namespace}
     spec:
       hosts:
       - "alpinresorts.online"
@@ -107,21 +120,8 @@ resource "kubectl_manifest" "virtualservice_manifest" {
 }
 
 // create the test app deployment resource
-resource "kubectl_manifest" "app_namespace" {
-    depends_on  = [kubectl_manifest.virtualservice_manifest]
-    yaml_body = <<YAML
-    kind: Namespace
-    apiVersion: v1
-    metadata:
-      name: ${var.app_namespace}
-      labels:
-        name: ${var.app_namespace}
-    YAML
-}
-
-// create the test app deployment resource
 resource "kubectl_manifest" "test_app_deployment" {
-    depends_on  = [kubectl_manifest.app_namespace]
+    depends_on  = [kubectl_manifest.virtualservice_manifest]
     yaml_body = <<YAML
     apiVersion: apps/v1
     kind: Deployment
