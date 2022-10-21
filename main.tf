@@ -108,6 +108,7 @@ resource "kubectl_manifest" "virtualservice_manifest" {
 
 // create the test app deployment resource
 resource "kubectl_manifest" "app_namespace" {
+    depends_on  = [kubectl_manifest.virtualservice_manifest]
     yaml_body = <<YAML
     kind: Namespace
     apiVersion: v1
@@ -150,7 +151,7 @@ resource "kubectl_manifest" "test_app_deployment" {
 
 // create the test app service
 resource "kubectl_manifest" "test_app_service" {
-    depends_on  = [kubectl_manifest.test_app_deployment, kubectl_manifest.virtualservice_manifest]
+    depends_on  = [kubectl_manifest.test_app_deployment]
     yaml_body = <<YAML
     apiVersion: v1
     kind: Service
