@@ -5,7 +5,7 @@ resource "kubectl_manifest" "issuer_manifest" {
     kind: ClusterIssuer
     metadata:
       name: letsencrypt-prod-cluster
-      namespace: istio-system
+      namespace: cert-manager
     spec:
       acme:
         email: ${var.acme_email}
@@ -27,7 +27,7 @@ resource "kubectl_manifest" "cert_manifest" {
     kind: Certificate
     metadata:
       name: prod-domain-cert
-      namespace: istio-system
+      namespace: cert-manager
     spec:
       secretName: prod-domain-cert
       duration: 2160h
