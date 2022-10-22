@@ -19,37 +19,6 @@ resource "kubectl_manifest" "issuer_manifest" {
     YAML
 }
 
-// create the istio gateway resource
-resource "kubectl_manifest" "gateway_manifest" {
-    depends_on  = [kubectl_manifest.cert_manifest]
-    yaml_body = <<YAML
-    apiVersion: networking.istio.io/v1alpha3
-    kind: Gateway
-    metadata:
-      name: prod-gateway
-      namespace: istio-system
-    spec:
-      selector:
-        istio: ingressgateway
-      servers:
-      - port:
-          number: 80
-          name: http
-          protocol: HTTP
-        hosts:
-        - test.alpinresorts.online
-      - port:
-          number: 443
-          name: https
-          protocol: HTTPS
-        tls:
-          mode: SIMPLE
-          credentialName: letsencrypt-test-domain-certificate
-        hosts:
-        - test.alpinresorts.online
-    YAML
-}
-
 // create the test app deployment resource
 resource "kubectl_manifest" "app_namespace" {
     depends_on  = [kubectl_manifest.issuer_manifest]
@@ -199,3 +168,34 @@ resource "kubectl_manifest" "certificate_resource" {
 //                   number: 80
 //     YAML
 // }
+
+// create the istio gateway resource
+resource "kubectl_manifest" "gateway_manifest" {
+    depends_on  = [kubectl_manifest.certificate_resource]
+    yaml_body = <<YAML
+    apiVersion: networking.istio.io/v1alpha3
+    kind: Gateway
+    metadata:
+      name: prod-gateway
+      namespace: istio-system
+    spec:
+      selector:
+        istio: ingressgateway
+      servers:
+      - port:
+          number: 80
+          name: http
+          protocol: HTTP
+        hosts:
+        - test.alpinresorts.online
+      - port:
+          number: 443
+          name: https
+          protocol: HTTPS
+        tls:
+          mode: SIMPLE
+          credentialName: letsencrypt-test-domain-certificate
+        hosts:
+        - test.alpinresorts.online
+    YAML
+}
