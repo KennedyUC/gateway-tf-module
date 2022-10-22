@@ -19,36 +19,36 @@ resource "kubectl_manifest" "issuer_manifest" {
     YAML
 }
 
-// // create the istio gateway resource
-// resource "kubectl_manifest" "gateway_manifest" {
-//     depends_on  = [kubectl_manifest.cert_manifest]
-//     yaml_body = <<YAML
-//     apiVersion: networking.istio.io/v1alpha3
-//     kind: Gateway
-//     metadata:
-//       name: prod-gateway
-//       namespace: istio-system
-//     spec:
-//       selector:
-//         istio: ingressgateway
-//       servers:
-//       - port:
-//           number: 80
-//           name: http
-//           protocol: HTTP
-//         hosts:
-//         - test.alpinresorts.online
-//       - port:
-//           number: 443
-//           name: https
-//           protocol: HTTPS
-//         tls:
-//           mode: SIMPLE
-//           credentialName: letsencrypt-test-domain-certificate
-//         hosts:
-//         - test.alpinresorts.online
-//     YAML
-// }
+// create the istio gateway resource
+resource "kubectl_manifest" "gateway_manifest" {
+    depends_on  = [kubectl_manifest.cert_manifest]
+    yaml_body = <<YAML
+    apiVersion: networking.istio.io/v1alpha3
+    kind: Gateway
+    metadata:
+      name: prod-gateway
+      namespace: istio-system
+    spec:
+      selector:
+        istio: ingressgateway
+      servers:
+      - port:
+          number: 80
+          name: http
+          protocol: HTTP
+        hosts:
+        - test.alpinresorts.online
+      - port:
+          number: 443
+          name: https
+          protocol: HTTPS
+        tls:
+          mode: SIMPLE
+          credentialName: letsencrypt-test-domain-certificate
+        hosts:
+        - test.alpinresorts.online
+    YAML
+}
 
 // create the test app deployment resource
 resource "kubectl_manifest" "app_namespace" {
@@ -62,32 +62,6 @@ resource "kubectl_manifest" "app_namespace" {
         name: ${var.app_namespace}
     YAML
 }
-
-// // create the virtualservice resource
-// resource "kubectl_manifest" "virtualservice_manifest" {
-//     depends_on  = [kubectl_manifest.app_namespace]
-//     yaml_body = <<YAML
-//     apiVersion: networking.istio.io/v1alpha3
-//     kind: VirtualService
-//     metadata:
-//       name: virtual-service-test
-//       namespace: ${var.app_namespace}
-//     spec:
-//       hosts:
-//       - "test.alpinresorts.online"
-//       gateways:
-//       - istio-system/gateway
-//       http:
-//       - match:
-//         - uri:
-//             exact: /
-//         route:
-//         - destination:
-//             host: ${var.app_name}
-//             port:
-//               number: 8080
-//     YAML
-// }
 
 // create the test app deployment resource
 resource "kubectl_manifest" "test_app_resource" {
@@ -138,9 +112,35 @@ resource "kubectl_manifest" "test_app_service" {
     YAML
 }
 
+// create the virtualservice resource
+resource "kubectl_manifest" "virtualservice_manifest" {
+    depends_on  = [kubectl_manifest.test_app_service]
+    yaml_body = <<YAML
+    apiVersion: networking.istio.io/v1alpha3
+    kind: VirtualService
+    metadata:
+      name: virtual-service-test
+      namespace: ${var.app_namespace}
+    spec:
+      hosts:
+      - "test.alpinresorts.online"
+      gateways:
+      - istio-system/gateway
+      http:
+      - match:
+        - uri:
+            exact: /
+        route:
+        - destination:
+            host: ${var.app_name}
+            port:
+              number: 8080
+    YAML
+}
+
 // create the certificate issuer resource
 resource "kubectl_manifest" "certificate_resource" {
-    depends_on  = [kubectl_manifest.test_app_service]
+    depends_on  = [kubectl_manifest.virtualservice_manifest]
     yaml_body = <<YAML
     apiVersion: cert-manager.io/v1
     kind: Certificate
@@ -168,34 +168,34 @@ resource "kubectl_manifest" "certificate_resource" {
     YAML
 }
 
-// create the ingress for the service
-resource "kubectl_manifest" "ingress_resource" {
-    depends_on  = [kubectl_manifest.certificate_resource]
-    yaml_body = <<YAML
-    apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: letsencrypt-test-ingress
-      annotations:
-        kubernetes.io/ingress.class: "nginx"
-        nginx.ingress.kubernetes.io/ssl-redirect: "false" 
-        certmanager.k8s.io/issuer: "letsencrypt-test-cluster-issuer"
-        certmanager.k8s.io/acme-challenge-type: http01
-    spec:
-      tls:
-      - hosts:
-        - test.alpinresorts.online
-        secretName: letsencrypt-test-domain-certificate
-      rules:
-      - host: test.alpinresorts.online
-        http:
-          paths:
-          - path: /
-            pathType: Exact
-            backend:
-              service:
-                name: ${var.app_name}
-                port: 
-                  number: 80
-    YAML
-}
+// // create the ingress for the service
+// resource "kubectl_manifest" "ingress_resource" {
+//     depends_on  = [kubectl_manifest.certificate_resource]
+//     yaml_body = <<YAML
+//     apiVersion: networking.k8s.io/v1
+//     kind: Ingress
+//     metadata:
+//       name: letsencrypt-test-ingress
+//       annotations:
+//         kubernetes.io/ingress.class: "nginx"
+//         nginx.ingress.kubernetes.io/ssl-redirect: "false" 
+//         certmanager.k8s.io/issuer: "letsencrypt-test-cluster-issuer"
+//         certmanager.k8s.io/acme-challenge-type: http01
+//     spec:
+//       tls:
+//       - hosts:
+//         - test.alpinresorts.online
+//         secretName: letsencrypt-test-domain-certificate
+//       rules:
+//       - host: test.alpinresorts.online
+//         http:
+//           paths:
+//           - path: /
+//             pathType: Exact
+//             backend:
+//               service:
+//                 name: ${var.app_name}
+//                 port: 
+//                   number: 80
+//     YAML
+// }
