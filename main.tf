@@ -191,12 +191,7 @@ resource "kubectl_manifest" "ingress_resource" {
         http:
           paths:
           - path: /
-            backend:
-              serviceName: ${var.app_name}
-              servicePort: 80
-      - http:
-          paths:
-          - path: /
+            pathType: Exact
             backend:
               serviceName: ${var.app_name}
               servicePort: 80
