@@ -4,18 +4,18 @@ resource "kubectl_manifest" "issuer_manifest" {
     apiVersion: cert-manager.io/v1
     kind: ClusterIssuer
     metadata:
-      name: letsencrypt-prod-cluster
+      name: letsencrypt-prod-cluster-issuer
       namespace: cert-manager
     spec:
       acme:
         email: ${var.acme_email}
         server: https://acme-v02.api.letsencrypt.org/directory
         privateKeySecretRef:
-          name: letsencrypt-prod-cluster
+          name: letsencrypt-cluster-issuer-key
         solvers:
         - http01:
             ingress:
-              class: istio
+              class: nginx
     YAML
 }
 
@@ -43,7 +43,7 @@ resource "kubectl_manifest" "cert_manifest" {
       dnsNames:
         - "alpinresorts.online"
       issuerRef:
-        name: letsencrypt-prod-cluster
+        name: letsencrypt-prod-cluster-issuer
         kind: ClusterIssuer
         group: cert-manager.io
     YAML
