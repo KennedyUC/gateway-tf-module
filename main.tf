@@ -4,13 +4,13 @@ resource "kubectl_manifest" "issuer_resource" {
     apiVersion: cert-manager.io/v1
     kind: ClusterIssuer
     metadata:
-      name: letsencrypt-test-cluster-issuer
+      name: ${var.issuer_name}
     spec:
       acme:
         email: ${var.acme_email}
         server: https://acme-v02.api.letsencrypt.org/directory
         privateKeySecretRef:
-          name: letsencrypt-test-issuer-key
+          name: ${var.issuer_name}-key
         solvers:
         - http01:
             ingress:
@@ -38,12 +38,12 @@ resource "kubectl_manifest" "certificate_resource" {
     apiVersion: cert-manager.io/v1
     kind: Certificate
     metadata:
-      name: letsencrypt-test-domain-certificate
+      name: ${var.certificate_name}
       namespace: ${var.app_namespace}
     spec:
-      secretName: letsencrypt-test-domain-certificate
+      secretName: ${var.certificate_name}-secret
       issuerRef:
-        name: letsencrypt-test-cluster-issuer
+        name: ${var.issuer_name}
         kind: ClusterIssuer
       dnsNames:
         - test.alpinresorts.online
@@ -134,7 +134,7 @@ resource "kubectl_manifest" "ingress_resource" {
     apiVersion: networking.k8s.io/v1
     kind: Ingress
     metadata:
-      name: letsencrypt-test-ingress
+      name: ${var.app_name}-ingress
       namespace: ${var.app_namespace}
     spec:
       rules:
@@ -151,7 +151,7 @@ resource "kubectl_manifest" "ingress_resource" {
       tls:
       - hosts:
           - test.alpinresorts.online
-        secretName: letsencrypt-test-domain-certificate
+        secretName: ${var.certificate_name}-secret
     YAML
 }
 

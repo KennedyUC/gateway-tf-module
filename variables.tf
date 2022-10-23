@@ -15,3 +15,13 @@ variable "app_name" {
     default     = "test-app"
     description = "name of the app for the test"
 }
+
+variable "certificate_name" {
+    type        = string
+    description = "certificate name"
+}
+
+variable "issuer_name" {
+    type        = string
+    description = "certificate cluster issuer name"
+}
